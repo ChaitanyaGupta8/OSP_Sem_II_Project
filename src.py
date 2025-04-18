@@ -10,6 +10,8 @@ BOOKING_FILE = "bookings.json"
 
 flights = []
 bookings = []
+USERNAME = "admin"
+PASSWORD = "password"
 
 def generate_flight_id():
     return "FL-" + str(uuid.uuid4())[:8]
@@ -31,7 +33,28 @@ def load_data():
     if os.path.exists(BOOKING_FILE):
         with open(BOOKING_FILE, 'r') as f:
             bookings = json.load(f)
+def login_gui():
+    login_window = tk.Toplevel(root)
+    login_window.title("Login")
 
+    ttk.Label(login_window, text="Username:").pack(pady=5)
+    username_entry = ttk.Entry(login_window)
+    username_entry.pack(pady=5)
+
+    ttk.Label(login_window, text="Password:").pack(pady=5)
+    password_entry = ttk.Entry(login_window, show="*")
+    password_entry.pack(pady=5)
+
+    def check_login():
+        username = username_entry.get()
+        password = password_entry.get()
+        if username == USERNAME and password == PASSWORD:
+            login_window.destroy()
+            main_frame.pack(expand=True)
+        else:
+            messagebox.showerror("Login Failed", "Invalid username or password.")
+
+    ttk.Button(login_window, text="Login", command=check_login).pack(pady=10)
 def add_flight_gui():
     top = tk.Toplevel(root)
     top.title("Add Flight")
@@ -288,7 +311,7 @@ style.map("TButton",
           foreground=[('active', 'white'), ('!active', 'white')])
 
 main_frame = ttk.Frame(root, padding=20)
-main_frame.pack(expand=True)
+main_frame.pack_forget()  # Initially hide it
 
 ttk.Label(main_frame, text="✈ Airline Management System ✈", style="Header.TLabel").pack(pady=(0, 20))
 
@@ -308,4 +331,5 @@ for label, cmd in buttons:
     ttk.Button(main_frame, text=label, width=35, command=cmd).pack(pady=7)
 
 load_data()
+login_gui()  # Show login page first
 root.mainloop()
