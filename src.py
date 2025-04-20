@@ -33,69 +33,111 @@ def load_data():
     if os.path.exists(BOOKING_FILE):
         with open(BOOKING_FILE, 'r') as f:
             bookings = json.load(f)
+
+
 def login_gui():
-    login_window = tk.Toplevel(root)
-    login_window.title("Login")
+    login_window = tk.Toplevel()
+    login_window.title("🔐 Admin Login")
+    login_window.geometry("400x260")
+    login_window.resizable(False, False)
+    center_window(login_window, 400, 260)
+    login_window.grab_set()
+    login_window.focus_force()
 
-    ttk.Label(login_window, text="Username:").pack(pady=5)
-    username_entry = ttk.Entry(login_window)
-    username_entry.pack(pady=5)
+    style = ttk.Style()
+    style.configure("Login.TEntry", padding=6, font=("Segoe UI", 11))
+    style.configure("Login.TLabel", font=("Segoe UI", 11), background="#f0f4f8")
+    style.configure("Login.TButton", font=("Segoe UI", 10, "bold"), padding=8)
+    style.map("Login.TButton",
+              background=[('active', '#004080'), ('!active', '#0059b3')],
+              foreground=[('active', 'white'), ('!active', 'white')])
 
-    ttk.Label(login_window, text="Password:").pack(pady=5)
-    password_entry = ttk.Entry(login_window, show="*")
-    password_entry.pack(pady=5)
+    frame = ttk.Frame(login_window, padding=20, style="TFrame")
+    frame.pack(expand=True, fill="both")
+
+    ttk.Label(frame, text="✈ Admin Login", style="Header.TLabel").grid(columnspan=2, pady=(0, 20))
+
+    ttk.Label(frame, text="👤 Username:", style="Login.TLabel").grid(row=1, column=0, sticky="e", padx=10, pady=8)
+    username_entry = ttk.Entry(frame, width=25, style="Login.TEntry")
+    username_entry.grid(row=1, column=1, pady=8)
+    username_entry.focus()
+
+    ttk.Label(frame, text="🔒 Password:", style="Login.TLabel").grid(row=2, column=0, sticky="e", padx=10, pady=8)
+    password_entry = ttk.Entry(frame, show="*", width=25, style="Login.TEntry")
+    password_entry.grid(row=2, column=1, pady=8)
 
     def check_login():
-        username = username_entry.get()
-        password = password_entry.get()
+        username = username_entry.get().strip()
+        password = password_entry.get().strip()
         if username == USERNAME and password == PASSWORD:
             login_window.destroy()
             main_frame.pack(expand=True)
         else:
-            messagebox.showerror("Login Failed", "Invalid username or password.")
+            messagebox.showerror("Login Failed", "❌ Invalid username or password.")
 
-    ttk.Button(login_window, text="Login", command=check_login).pack(pady=10)
+    login_window.bind('<Return>', lambda event: check_login())
+
+    ttk.Button(frame, text="🔓 Login", style="Login.TButton", command=check_login).grid(row=3, columnspan=2, pady=20)
+
+    
+
+def center_window(win, width=400, height=300):
+    screen_width = win.winfo_screenwidth()
+    screen_height = win.winfo_screenheight()
+    x = (screen_width - width) // 2
+    y = (screen_height - height) // 2
+    win.geometry(f'{width}x{height}+{x}+{y}')
+
 def add_flight_gui():
     top = tk.Toplevel(root)
-    top.title("Add Flight")
+    top.title("➕ Add New Flight")
+    center_window(top, 400, 350)
 
-    ttk.Label(top, text="Flight Number").pack()
-    flight_number_entry = ttk.Entry(top)
-    flight_number_entry.pack()
+    frame = ttk.Frame(top, padding=15)
+    frame.pack(expand=True, fill="both")
 
-    ttk.Label(top, text="Origin").pack()
-    origin_entry = ttk.Entry(top)
-    origin_entry.pack()
+    labels = ["Flight Number", "Origin", "Destination", "Total Seats"]
+    entries = {}
 
-    ttk.Label(top, text="Destination").pack()
-    destination_entry = ttk.Entry(top)
-    destination_entry.pack()
-
-    ttk.Label(top, text="Total Seats").pack()
-    seats_entry = ttk.Entry(top)
-    seats_entry.pack()
+    for i, label in enumerate(labels):
+        ttk.Label(frame, text=label + ":").grid(row=i, column=0, sticky="e", padx=10, pady=10)
+        entry = ttk.Entry(frame)
+        entry.grid(row=i, column=1, padx=10, pady=10)
+        entries[label] = entry
 
     def submit_flight():
+        flight_number = entries["Flight Number"].get().strip()
+        origin = entries["Origin"].get().strip()
+        destination = entries["Destination"].get().strip()
+        seats = entries["Total Seats"].get().strip()
+
+        if not all([flight_number, origin, destination, seats]):
+            messagebox.showwarning("Missing Data", "Please fill in all fields.")
+            return
+
         try:
-            total_seats = int(seats_entry.get())
+            total_seats = int(seats)
+            if total_seats <= 0:
+                raise ValueError
         except ValueError:
-            messagebox.showerror("Invalid Input", "Total Seats must be a number.")
+            messagebox.showerror("Invalid Input", "Total Seats must be a positive number.")
             return
 
         flight = {
             'id': generate_flight_id(),
-            'flight_number': flight_number_entry.get(),
-            'origin': origin_entry.get(),
-            'destination': destination_entry.get(),
+            'flight_number': flight_number,
+            'origin': origin,
+            'destination': destination,
             'total_seats': total_seats,
             'available_seats': total_seats
         }
         flights.append(flight)
         save_data()
-        messagebox.showinfo("Success", "Flight added successfully!")
+        messagebox.showinfo("Success", "✅ Flight added successfully!")
         top.destroy()
 
-    ttk.Button(top, text="Add Flight", command=submit_flight).pack(pady=10)
+    ttk.Button(frame, text="Add Flight", command=submit_flight).grid(row=5, columnspan=2, pady=20)
+
 
 def view_flights_gui():
     top = tk.Toplevel(root)
@@ -159,42 +201,74 @@ def search_flights_gui():
 
     ttk.Button(frame, text="Search", command=search).grid(row=2, columnspan=2, pady=10)
 
+
 def book_ticket_gui():
     if not flights:
-        messagebox.showwarning("No Flights", "No flights to book yet.")
+        messagebox.showwarning("No Flights", "🚫 No flights available to book.")
         return
 
-    options = [f"{f['flight_number']} ({f['id']})" for f in flights]
-    selected = simpledialog.askstring("Book Ticket", "Choose Flight:\n" + "\n".join(options))
-    if not selected:
-        return
+    top = tk.Toplevel(root)
+    top.title("🎟 Book a Ticket")
+    center_window(top, 420, 400)
 
-    selected_id = selected.split("(")[-1].strip(")")
-    flight = next((f for f in flights if f['id'] == selected_id), None)
+    frame = ttk.Frame(top, padding=20)
+    frame.pack(fill="both", expand=True)
 
-    if not flight:
-        messagebox.showerror("Error", "Flight not found.")
-        return
+    # Display all flights for reference
+    flight_info_box = tk.Text(frame, height=8, width=50, wrap="word", state="normal")
+    flight_info_box.grid(row=0, columnspan=2, padx=5, pady=10)
 
-    if flight['available_seats'] <= 0:
-        messagebox.showinfo("Full", "No seats available.")
-        return
+    flight_info_box.insert(tk.END, "📃 Available Flights:\n")
+    for f in flights:
+        flight_info_box.insert(tk.END,
+            f"✈ {f['flight_number']} - {f['origin']} → {f['destination']} "
+            f"({f['available_seats']} / {f['total_seats']} seats)\n"
+        )
+    flight_info_box.config(state="disabled")
 
-    name = simpledialog.askstring("Passenger Name", "Enter passenger name:")
-    if not name:
-        return
+    # Flight Number Entry
+    ttk.Label(frame, text="Flight Number:").grid(row=1, column=0, sticky="e", padx=10, pady=10)
+    flight_number_entry = ttk.Entry(frame, width=30)
+    flight_number_entry.grid(row=1, column=1, padx=10, pady=10)
 
-    booking = {
-        'id': generate_booking_id(),
-        'passenger_name': name,
-        'flight_id': flight['id'],
-        'flight_number': flight['flight_number']
-    }
+    # Passenger Name Entry
+    ttk.Label(frame, text="Passenger Name:").grid(row=2, column=0, sticky="e", padx=10, pady=10)
+    name_entry = ttk.Entry(frame, width=30)
+    name_entry.grid(row=2, column=1, padx=10, pady=10)
 
-    bookings.append(booking)
-    flight['available_seats'] -= 1
-    save_data()
-    messagebox.showinfo("Success", "Ticket booked successfully!")
+    def book_ticket():
+        flight_number = flight_number_entry.get().strip()
+        name = name_entry.get().strip()
+
+        if not flight_number or not name:
+            messagebox.showwarning("Missing Fields", "Please fill in all fields.")
+            return
+
+        flight = next((f for f in flights if f['flight_number'].lower() == flight_number.lower()), None)
+
+        if not flight:
+            messagebox.showerror("Not Found", f"No flight found with number '{flight_number}'.")
+            return
+
+        if flight['available_seats'] <= 0:
+            messagebox.showinfo("Full", f"❌ Flight {flight_number} has no available seats.")
+            return
+
+        booking = {
+            'id': generate_booking_id(),
+            'passenger_name': name,
+            'flight_id': flight['id'],
+            'flight_number': flight['flight_number']
+        }
+
+        bookings.append(booking)
+        flight['available_seats'] -= 1
+        save_data()
+        messagebox.showinfo("Success", f"✅ Ticket booked for {name} on flight {flight_number}.")
+        top.destroy()
+
+    ttk.Button(frame, text="Book Ticket", command=book_ticket).grid(row=3, columnspan=2, pady=20)
+
 
 def view_bookings_gui():
     top = tk.Toplevel(root)
@@ -204,14 +278,47 @@ def view_bookings_gui():
         ttk.Label(top, text="No bookings found.").pack()
         return
 
+    # Create a treeview widget with more structured columns
+    tree = ttk.Treeview(top, columns=("Booking ID", "Passenger Name", "Flight Number"), show="headings")
+    
+    # Define headings for the columns
+    tree.heading("Booking ID", text="Booking ID")
+    tree.heading("Passenger Name", text="Passenger Name")
+    tree.heading("Flight Number", text="Flight Number")
+
+    # Allow sorting by each column
+    tree.column("Booking ID", width=150, anchor="center")
+    tree.column("Passenger Name", width=200, anchor="w")
+    tree.column("Flight Number", width=150, anchor="center")
+    
+    tree.pack(fill="both", expand=True)
+
+    # Insert all bookings into the treeview
     for b in bookings:
-        info = (
-            f"Booking ID: {b['id']}\n"
-            f"Passenger: {b['passenger_name']}\n"
-            f"Flight Number: {b['flight_number']}\n"
-            "-----------------------------"
-        )
-        ttk.Label(top, text=info, justify="left").pack(anchor="w", padx=10)
+        tree.insert("", "end", values=(b['id'], b['passenger_name'], b['flight_number']))
+    
+    # Adding a button for better interaction (like cancelling a booking or deleting it)
+    def cancel_selected():
+        selected_item = tree.selection()
+        if selected_item:
+            booking_id = tree.item(selected_item)["values"][0]
+            booking = next((b for b in bookings if b["id"] == booking_id), None)
+            if booking:
+                bookings.remove(booking)
+                for f in flights:
+                    if f['id'] == booking['flight_id']:
+                        f['available_seats'] += 1
+                        break
+                save_data()
+                tree.delete(selected_item)
+                messagebox.showinfo("Success", "Booking cancelled successfully.")
+            else:
+                messagebox.showerror("Error", "Booking not found.")
+        else:
+            messagebox.showwarning("Select Booking", "Please select a booking to cancel.")
+
+    ttk.Button(top, text="Cancel Selected Booking", command=cancel_selected).pack(pady=10)
+
 
 def cancel_booking_gui():
     if not bookings:
@@ -295,41 +402,63 @@ def view_passengers_gui():
     ttk.Button(top, text="Show Passengers", command=show_passengers).pack(pady=5)
 
 
-root = tk.Tk()
-root.title("✈ Airline Management System")
-root.geometry("500x700")
-root.configure(bg="#f0f4f8")
+def toggle_theme(root, current_theme):
+    if current_theme.get() == "light":
+        root.configure(bg="#2e2e2e")
+        current_theme.set("dark")
+    else:
+        root.configure(bg="#f0f0f0")
+        current_theme.set("light")
 
-style = ttk.Style()
-style.theme_use("clam")
-style.configure("TFrame", background="#f0f4f8")
-style.configure("TLabel", background="#f0f4f8", font=("Segoe UI", 11))
-style.configure("TButton", font=("Segoe UI", 10, "bold"), padding=6)
-style.configure("Header.TLabel", font=("Segoe UI", 16, "bold"), foreground="#003366")
-style.map("TButton",
-          background=[('active', '#0059b3'), ('!active', '#0073e6')],
-          foreground=[('active', 'white'), ('!active', 'white')])
 
-main_frame = ttk.Frame(root, padding=20)
-main_frame.pack_forget()  # Initially hide it
+def run_app():
+    global root, main_frame
 
-ttk.Label(main_frame, text="✈ Airline Management System ✈", style="Header.TLabel").pack(pady=(0, 20))
+    root = tk.Tk()
+    
+    root.withdraw()  # Hide root until login is complete
+    root.title("✈ Airline Management System")
+    root.geometry("500x700")
+    root.configure(bg="#f0f4f8")
 
-buttons = [
-    ("Add Flight", add_flight_gui),
-    ("View Flights", view_flights_gui),
-    ("Search Flights", search_flights_gui),
-    ("Book Ticket", book_ticket_gui),
-    ("View Bookings", view_bookings_gui),
-    ("View Passengers", view_passengers_gui),
-    ("Cancel Booking", cancel_booking_gui),
-    ("Delete Flight", delete_flight_gui),
-    ("Exit", lambda: (save_data(), root.quit()))
-]
+    current_theme = tk.StringVar(value="light")
+    toggle_button = ttk.Button(root, text="Toggle Theme", command=lambda: toggle_theme(root, current_theme))
+    toggle_button.pack(pady=10)
 
-for label, cmd in buttons:
-    ttk.Button(main_frame, text=label, width=35, command=cmd).pack(pady=7)
+    style = ttk.Style()
+    style.theme_use("clam")
+    style.configure("TFrame", background="#f0f4f8")
+    style.configure("TLabel", background="#f0f4f8", font=("Segoe UI", 11))
+    style.configure("TButton", font=("Segoe UI", 10, "bold"), padding=6)
+    style.configure("Header.TLabel", font=("Segoe UI", 16, "bold"), foreground="#003366")
+    style.map("TButton",
+              background=[('active', '#0059b3'), ('!active', '#0073e6')],
+              foreground=[('active', 'white'), ('!active', 'white')])
 
-load_data()
-login_gui()  # Show login page first
-root.mainloop()
+    main_frame = ttk.Frame(root, padding=20)
+    main_frame.pack_forget()  # Show only after login
+
+    ttk.Label(main_frame, text="✈ Airline Management System ✈", style="Header.TLabel").pack(pady=(0, 20))
+
+    buttons = [
+        ("Add Flight", add_flight_gui),
+        ("View Flights", view_flights_gui),
+        ("Search Flights", search_flights_gui),
+        ("Book Ticket", book_ticket_gui),
+        ("View Bookings", view_bookings_gui),
+        ("View Passengers", view_passengers_gui),
+        ("Cancel Booking", cancel_booking_gui),
+        ("Delete Flight", delete_flight_gui),
+        ("Exit", lambda: (save_data(), root.quit()))
+    ]
+
+    for label, cmd in buttons:
+        ttk.Button(main_frame, text=label, width=35, command=cmd).pack(pady=7)
+
+    load_data()
+    login_gui()  # Launch login as modal
+    root.deiconify()  # Show main window after login window is closed
+    root.mainloop()
+
+run_app()
+
